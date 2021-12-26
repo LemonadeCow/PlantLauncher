@@ -1,0 +1,4 @@
+
+{"name": "Mindustry", "shortcut": "/home/lemonadecow/Desktop/Games/Mindustry.desktop", "icon": "/home/lemonadecow/Games/MindustryLinux/icon.png", "exec": "bash /home/lemonadecow/Games/MindustryLinux/launch.sh", "id": 0}
+{"name": "\"How We Know Were Alive\"", "shortcut": "/home/lemonadecow/Desktop/Games/HWKWA.desktop", "icon": "/home/lemonadecow/Games/HWKWA_linux/HWKWA_Linux_x86_Data/Resources/UnityPlayer.png", "exec": "bash Games/HWKWA_linux/run.sh", "id": 1}
+{"name": "Dicey Dungeons", "shortcut": "/home/lemonadecow/Desktop/Games/Dicey Dungeons.desktop", "icon": "/home/lemonadecow/Games/DiceyDungeonsLinux/data/icon.png", "exec": "bash Games/DiceyDungeonsLinux/launch.sh", "id": 2}
