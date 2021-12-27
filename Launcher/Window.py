@@ -1,7 +1,8 @@
 import os, platform, subprocess, sys
 import json
 from pathlib import Path
-import wx
+import wx, wx.svg, wx.lib.mixins.inspection, wx.lib.scrolledpanel as scrolled
+
 
 #USE JSON TO STOR DEFAULT GAME DIR, AND THE GAME ARR
 
@@ -30,11 +31,13 @@ class Game:
         return tmp
 
 
-class GameTab(wx.Panel):
+class GameTab(scrolled.ScrolledPanel):
     
     def __init__(self, parent, icon_size):
         super().__init__(parent)
         self.parent = parent
+
+        scrolled.ScrolledPanel.__init__(self, parent, -1)
 
         icon = wx.Image(*icon_size)
 
@@ -43,6 +46,12 @@ class GameTab(wx.Panel):
         add_btn = wx.Button(self, label = 'Add Game')
         add_btn.Bind(wx.EVT_BUTTON, self.on_add)
 
+        self.edit = False
+        self.e_b = []
+        self.edit_btn = wx.Button(self, label='Edit')
+        self.edit_btn.Bind(wx.EVT_BUTTON, self.on_edit)
+        self.edit_btn.SetPosition((add_btn.GetPosition()[0] + self.edit_btn.GetSize()[0] + 20, 5))
+
         self.short_path = ""
 
         os.chdir(str(Path.home()) + "/PlantLauncher")
@@ -50,8 +59,6 @@ class GameTab(wx.Panel):
         for line in open(os.getcwd().replace("/Launcher", "") + "/Assets/games.json", "r"):
             if len(line.replace('\\n', '')) > 10:
                 data.GAMES.append(json.loads(line))
-
-        print(data.GAMES)
 
         self.g_b = []
         for i in range(len(data.GAMES)):
@@ -68,14 +75,16 @@ class GameTab(wx.Panel):
             new_w = self.max_size
             new_h = self.max_size * H / W
             
-            img = img.Scale(new_w, new_h)
+            img = img.Scale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
 
             bmp = wx.Bitmap(img)
 
-            self.g_b[i] = wx.Button(self, id = 1, label = "", pos = (50,30), size = (new_w+10, new_h+10))
+            self.g_b[i] = wx.Button(self, label="", id=i, pos=(50,30), size=(new_w+10, new_h+10))
             self.g_b[i].SetBitmap(bmp)
-            self.g_b[i].Bind(wx.EVT_BUTTON, lambda event : self.on_launch(event, data.GAMES[i]["id"]))
-        
+            self.g_b[i].Bind(wx.EVT_LEFT_DOWN, self.on_game_down)
+            self.g_b[i].Bind(wx.EVT_LEFT_UP, self.on_game_up)
+            self.g_b[i].Bind(wx.EVT_MOTION, self.on_game_drag)
+
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         self.hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.g_sizer = wx.GridSizer(6,5,5)
@@ -83,9 +92,10 @@ class GameTab(wx.Panel):
         self.hsizer.Add(add_btn, 0, wx.ALL, 5)
         self.g_sizer.AddMany(self.g_b)
         self.main_sizer.Add(self.hsizer)
-        self.main_sizer.Add(self.g_sizer)
+        self.main_sizer.Add(self.g_sizer, 0, wx.LEFT, 5)
         self.SetSizer(self.main_sizer)
         self.main_sizer.Fit(self.parent)
+        self.SetupScrolling()
         self.Layout()
     
     def on_add(self, event):
@@ -101,7 +111,48 @@ class GameTab(wx.Panel):
                 return
 
             pathname = dialog.GetPath()
+            for g in data.GAMES:
+                if pathname in g["shortcut"]:
+                    wx.MessageBox('Application is already inside your library', 'Error', wx.OK )
+                    return
             self.add_game(pathname) 
+    
+    def on_edit(self, event):
+        # add the x on all buttons
+        
+        if len(self.g_b) != len(data.GAMES):
+            print("tf") 
+        
+        os.chdir(Path.home())
+
+        edit_svg = wx.svg.SVGimage.CreateFromFile("PlantLauncher/Assets/edit_x.svg")
+        bmp = edit_svg.ConvertToBitmap(scale=1 ,width=30, height=30)
+
+        if not self.edit:
+            self.e_b = []
+            for i in range(len(self.g_b)):
+                self.e_b.append(0)
+            for i in range(len(self.g_b)):
+                self.e_b[i] = wx.Button(self, label="", id=i, size=(30,30), pos=(self.g_b[i].GetPosition()[0] + 75, self.g_b[i].GetPosition()[1] - 5))
+                self.e_b[i].Bind(wx.EVT_BUTTON, lambda event: self.on_click(event, i))
+                self.e_b[i].SetBitmap(bmp)
+                self.e_b[i].SetBitmapMargins((1,1))
+        else:
+            for i in range(len(self.e_b)):
+                self.e_b[i].Destroy()
+            print(self.e_b)
+            self.edit = False
+            return
+
+        self.edit = True
+
+    def on_click(self, event, ind):
+            btn = event.GetEventObject()
+            btn_id = btn.GetId()
+            btn.Destroy()
+            data.GAMES.pop(btn_id)
+            self.g_b[btn_id].Destroy()
+            
 
     def add_game(self, path):
         """
@@ -146,49 +197,80 @@ class GameTab(wx.Panel):
         data.GAMES.append(self.game)
         self.game.id = data.GAMES.index(self.game)
 
-        games_json = open(os.getcwd().replace("/Launcher", "") + "/Assets/games.json", "a")
-
         data.GAMES[self.game.id] = data.GAMES[self.game.id].to_json()
-        tmp = json.dumps(data.GAMES[self.game.id])
-        games_json.write("\n" + tmp)
-
-        games_json.close()
 
         self.g_b.append(wx.Button(self, id = 1, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
         self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
+        if self.edit:
+            for i in range(len(self.e_b)):
+                self.e_b[i].Destroy()
+            self.edit = False
         self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, lambda event : self.on_launch(event, self.game.id))
+        print(self.game.id)
 
         self.main_sizer.Remove(self.g_sizer)
         print(data.GAMES)
         
-        self.g_sizer = wx.GridSizer(5,0,0)
+        self.g_sizer = wx.GridSizer(6,5,5)
         self.g_sizer.AddMany(self.g_b)
-        self.main_sizer.Add(self.g_sizer, wx.EXPAND | wx.ALL)
+        self.main_sizer.Add(self.g_sizer, 0, wx.LEFT, 5)
         self.Layout()
         self.Refresh()
         
-    def on_launch(self, event, ind):
+    def on_game_down(self, event):
         """
-        creates a tmp file and dir and creates the launch instructions for the game
+        handles when the user clicks down on a game
         """
-        if not os.path.isdir("/tmp/PlantLauncher"):
-            os.makedirs("/tmp/PlantLauncher")
-        f = open("/tmp/PlantLauncher/launch_instructions.sh", "a")
-        f.write('#!bin/bash')
-        f.write("\n" + data.GAMES[ind]["exec"])
-        f.close()
-        os.chdir(Path.home())
-        os.system("bash /tmp/PlantLauncher/launch_instructions.sh")
-        os.remove("/tmp/PlantLauncher/launch_instructions.sh")
-        os.rmdir("/tmp/PlantLauncher")
-        os.chdir(os.path.dirname(__file__))
-        
+        if not self.edit:
+            """
+            creates a tmp file and dir and creates the launch instructions for the game
+            """
+            btn = event.GetEventObject()
+            btn_id = btn.GetId()
 
-class ConfigTab(wx.Panel):
+            if not os.path.isdir("/tmp/PlantLauncher"):
+                os.makedirs("/tmp/PlantLauncher")
+            f = open("/tmp/PlantLauncher/launch_instructions.sh", "a")
+            f.write('#!bin/bash')
+            f.write("\n" + data.GAMES[btn_id]["exec"])
+            f.close()
+            os.chdir(Path.home())
+            os.system("bash /tmp/PlantLauncher/launch_instructions.sh")
+            os.remove("/tmp/PlantLauncher/launch_instructions.sh")
+            os.rmdir("/tmp/PlantLauncher")
+            os.chdir(os.path.dirname(__file__))
+
+    def on_game_up(self, event):
+        ###check for the nearest cell to reside in (empty or not) and
+        ###place object within that cell
+        
+        print('ash')
+    
+    def on_game_drag(self, event):
+        if self.edit:
+            x, y = event.GetPosition()
+            if not event.Dragging():
+                event.Skip()
+                return     
+            obj = event.GetEventObject()
+            sx,sy = obj.GetPosition()
+            dx,dy = wx.GetMousePosition()
+            obj.SetPosition(wx.Point(dx-90, dy-190))
+            self.e_b[obj.GetId()].SetPosition(wx.Point(dx - 10, dy-195))
+
+            print(dx, dy)
+        else:
+            return
+
+            
+
+class ConfigTab(scrolled.ScrolledPanel):
     
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
+
+        scrolled.ScrolledPanel.__init__(self, parent, -1)
 
         title_dir = wx.StaticText(self,  label = "Default Folder")
 
@@ -200,12 +282,15 @@ class ConfigTab(wx.Panel):
 
         title_dir.SetFont(font)
 
-        self.window_size = (500, 300)
+        self.window_size = (545, 300)
 
         self.resized = False
         parent.Bind(wx.EVT_SIZE, self.OnSize)
         parent.Bind(wx.EVT_IDLE, self.OnIdle)
-        self.g_titles =[]
+        self.g_titles = []
+        self.g_dirs = []
+        self.g_exec = []
+        self.g_icon = []
         self.refresh_b = wx.Button(self, label = "Refresh", pos=(0 ,0))
         self.refresh_b.SetPosition((self.window_size[0] - self.refresh_b.GetSize()[0] - 5, 0))
         self.refresh_b.Bind(wx.EVT_BUTTON, self.show_games)
@@ -227,6 +312,7 @@ class ConfigTab(wx.Panel):
         self.main_sizer.Add(self.dir_sizer, 0, wx.ALL, 5)
         
         self.SetSizer(self.main_sizer)
+        self.SetupScrolling()
         self.Layout()
         self.Refresh()
 
@@ -237,7 +323,7 @@ class ConfigTab(wx.Panel):
         if self.resized: 
             # take action if the dirty flag is set
             
-            if self.GetSize()[0] >= 438 and self.GetSize()[1] >= 224:
+            if self.GetSize()[0] >= 433 and self.GetSize()[1] >= 224:
                 self.window_size = self.GetSize()
                 self.refresh_b.SetPosition((self.window_size[0] - self.refresh_b.GetSize()[0], 0))
                 self.resized = False # reset the flag
@@ -254,24 +340,38 @@ class ConfigTab(wx.Panel):
     def show_games(self, event):
         for i in range(len(self.g_titles)):
             self.g_titles[i].Destroy()
-        print('what')
-        self.g_titles = []
+            self.g_dirs[i].Destroy()
+            self.g_exec[i].Destroy()
+            self.g_icon[i].Destroy()
         for i in range(len(data.GAMES)):
             self.g_titles.append(0)
+            self.g_dirs.append(0)
+            self.g_exec.append(0)
+            self.g_icon.append(0)
         
         font = wx.Font(12, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
                       underline = True)
 
         self.main_sizer.Remove(self.g_sizer)
-        self.g_sizer = wx.GridSizer(1, 20, 1)
+        self.g_sizer = wx.GridSizer(1, 5, 1)
         for i in range(len(data.GAMES)):
             self.g_titles[i] = wx.StaticText(self, label=data.GAMES[i]["name"])
             self.g_titles[i].SetFont(font)
-            self.g_sizer.Add(self.g_titles[i], 1, wx.EXPAND, 0)
-            
-        self.main_sizer.Add(self.g_sizer)
+            self.g_sizer.Add(self.g_titles[i])
+
+            self.g_icon[i] = wx.TextCtrl(self, size=(400, 30), value=data.GAMES[i]["icon"])
+            self.g_sizer.Add(self.g_icon[i])
+
+            self.g_dirs[i] = wx.TextCtrl(self, size=(400, 30), value=data.GAMES[i]["shortcut"])
+            self.g_sizer.Add(self.g_dirs[i])
+
+            self.g_exec[i] = wx.TextCtrl(self, size=(400, 30), value=data.GAMES[i]["exec"])
+            self.g_sizer.Add(self.g_exec[i])
+
+        self.main_sizer.Add(self.g_sizer, 1, wx.LEFT, 10)
 
         self.SetSizer(self.main_sizer)
+        self.main_sizer.Fit(self)
         self.Layout()
         self.Refresh()
 
@@ -279,7 +379,8 @@ frame_size = (0,0)
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title='Plant Launcher', size = (540, 300))
+        super().__init__(None, title='Plant Launcher', size = (545, 300))
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         panel = wx.Panel(self)
         nb = wx.Notebook(panel)
@@ -293,10 +394,20 @@ class MainFrame(wx.Frame):
         sizer.Add(nb, 1, wx.EXPAND)
         panel.SetSizer(sizer)
         self.Show(True)
+    
+    def OnClose(self, event):
+        os.chdir(str(Path.home()) + "/PlantLauncher/Assets")
+        open("games.json", "w").close()
+        tmp = open("games.json", "a")
+        for g in data.GAMES:
+            tmp.write("\n" + json.dumps(g))
+        tmp.close()
+        self.Destroy()
 
 if __name__ == '__main__':
     if "linux" in platform.system().lower():
         app = wx.App(redirect=False)
         frame = MainFrame()
-        frame.SetMinSize(wx.Size(540, 300))
+        frame.SetMinSize(wx.Size(545, 300))
+        wx.lib.inspection.InspectionTool().Show()
         app.MainLoop()
