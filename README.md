@@ -19,8 +19,7 @@ Well you can extract the code from github using
 As of now the application is really dumb and relies on being located in the home directory (will fix at some point)
 
 for now compiling requieres python3 and installing wx (will upload instructions on downloading an executable at some point)
-    ```
-    python3 -m pip install wx
-    ```
+    
+    `python3 -m pip install wx`
     
 Now you're all good to go and can launch the application with the launch.sh script 
