@@ -12,7 +12,7 @@ The app was made after my current distro Pop!_OS decided to update the applicati
 
 ## How to install/run
 Well you can extract the code from github using 
-    ```Bash
+    ```
     cd ~/ && git clone https://github.com/LemonadeCow/PlantLauncher.git
     ```
 
@@ -20,7 +20,7 @@ As of now the application is really dumb and relies on being located in the home
 
 for now compiling requieres python3 and installing wx (will upload instructions on downloading an executable at some point)
 
-    ```Bash
+    ```
     python3 -m pip install wx
     ```
     
