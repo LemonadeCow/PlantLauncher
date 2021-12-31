@@ -6,7 +6,8 @@ The PlantLauncher is an application made to be used as a way to organize applica
 As of now it is only supported in Linux distributions (built in Pop!_OS)
 
 ## Why?
-The app was made after my current distro Pop!_OS decided to update the applications tab and make it 1000x more annoying and difficult to use, so I put matters in my own hands and decided to program a whole app launcher for my applications in whichever way I seem fit.
+The app was made after my current distro Pop!_OS decided to update the applications tab and make it 1000x more annoying and difficult to use, 
+so I put matters in my own hands and decided to program a whole app launcher for my applications in whichever way I seem fit.
 
 ***Oh linux I love you.***
 
