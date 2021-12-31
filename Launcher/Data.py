@@ -18,3 +18,8 @@ class Game:
             "id" : self.id
         }
         return tmp
+
+    def Destroy(self):
+        self.__del__()
+    def __del__(self):
+        print(self.name + " has been destroyed")

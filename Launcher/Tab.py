@@ -165,40 +165,85 @@ class GameTab(scrolled.ScrolledPanel):
 
         desktop_file.close()
 
-        img = wx.Image(self.game.icon, wx.BITMAP_TYPE_ANY)
+        if "steam_icon_" in self.game.icon:
+            os.chdir(str(Path.home()) + "/.local/share/icons/hicolor")
+            tmp_dir = os.listdir()
+            tmp_dir = self.sort(tmp_dir)
 
-        W = img.GetWidth()
-        H = img.GetHeight()
+            icon_id = self.game.icon
 
-        new_w = self.max_size
-        new_h = self.max_size * H / W
-        
-        img = img.Scale(new_w, new_h)
+            for d in tmp_dir:
+                if "." not in d:
+                    print("\n" + str(d), os.listdir(str(d + "/apps")))
+                    if icon_id + ".png" in os.listdir(str(d) + "/apps"):
+                        print('hello?')
+                        self.game.icon = str(Path.home()) + "/.local/share/icons/hicolor/" + str(d) + "/apps/" + icon_id + ".png"
 
-        bmp = wx.Bitmap(img)
+        try:
+            img = wx.Image(self.game.icon, wx.BITMAP_TYPE_ANY)
 
-        Data.GAMES.append(self.game)
-        self.game.id = Data.GAMES.index(self.game)
+            W = img.GetWidth()
+            H = img.GetHeight()
 
-        Data.GAMES[self.game.id] = Data.GAMES[self.game.id].to_json()
+            new_w = self.max_size
+            new_h = self.max_size * H / W
+            
+            img = img.Scale(new_w, new_h)
 
-        self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
-        self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
-        if self.edit:
-            for i in range(len(self.e_b)):
-                self.e_b[i].Destroy()
-            self.edit = False
-        self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, self.on_game_down)
-        print(self.game.id)
+            bmp = wx.Bitmap(img)
 
-        self.main_sizer.Remove(self.g_sizer)
-        print(Data.GAMES)
-        
-        self.g_sizer = wx.GridSizer(6,5,5)
-        self.g_sizer.AddMany(self.g_b)
-        self.main_sizer.Add(self.g_sizer, 0, wx.LEFT, 5)
-        self.Layout()
-        self.Refresh()
+            Data.GAMES.append(self.game)
+            self.game.id = Data.GAMES.index(self.game)
+
+            Data.GAMES[self.game.id] = Data.GAMES[self.game.id].to_json()
+
+            self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
+            self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
+            if self.edit:
+                for i in range(len(self.e_b)):
+                    self.e_b[i].Destroy()
+                self.edit = False
+            self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, self.on_game_down)
+            print(self.game.id)
+
+            self.main_sizer.Remove(self.g_sizer)
+            print(Data.GAMES)
+            
+            self.g_sizer = wx.GridSizer(6,5,5)
+            self.g_sizer.AddMany(self.g_b)
+            self.main_sizer.Add(self.g_sizer, 0, wx.LEFT, 5)
+            self.Layout()
+            self.Refresh()
+        except:
+            Data.GAMES.pop(self.game.id)
+            self.game.Destroy()
+            wx.MessageBox('Either the game has been uninstalled or the icon cannot be found', 'Error', wx.OK | wx.ICON_ERROR)
+
+    def sort(self, list):
+
+        tmp = []
+
+        for d in list:
+            if 'x' in d and '.' not in d:        
+                if int(d[0:d.index('x')]) == int(d[d.index('x') + 1:len(d)]):
+                    tmp.append(int(d[0:d.index('x')]))
+                else:
+                    tmp.append(int(d[d.index('x') + 1:len(d)]))
+            else:
+                continue
+        tmp.sort()
+
+        tmp_1 = []
+    
+        j = 0
+        for j in range(len(tmp)):
+            for i in range(len(list)):
+                if str(tmp[j]) in list[i]:
+                    tmp_1.append(list[i])
+                    print("\n tmp_1 : ", tmp_1)
+
+        return tmp_1
+
         
     def on_game_down(self, event):
         """
@@ -281,7 +326,7 @@ class ConfigTab(scrolled.ScrolledPanel):
 
         self.refresh_b = wx.Button(self, label = "Refresh", pos=(0 ,0))
         self.refresh_b.SetPosition((self.window_size[0] - self.refresh_b.GetSize()[0] - 5, 0))
-        #self.refresh_b.Bind(wx.EVT_BUTTON, self.show_games)
+        self.refresh_b.Bind(wx.EVT_BUTTON, self.show_games)
         
         self.dir_txt = wx.TextCtrl(self, size=(200, -1))
 
