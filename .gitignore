@@ -1,3 +1,4 @@
+.gitignore
 Assets/games.json
 Tests/UnitTest.py
 Launcher/__pycache__/Tab.cpython-39.pyc
