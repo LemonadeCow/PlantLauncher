@@ -1,5 +1,5 @@
 # PlantLauncher
-
+![Plant Launcher logo, a plant](Assets/icon.png "THE ICON")
 ## Usage
 The PlantLauncher is an application made to be used as a way to organize applications(mostly games) in a simple, fast, and effective manner. 
 
