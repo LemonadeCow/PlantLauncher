@@ -1,5 +1,5 @@
-DEFAULT_GAME_DIR = "" # maybe use json
-GAMES = []    
+DEFAULT_GAME_DIR = None # maybe use json
+GAMES = []
 
 class Game:
     def __init__(self):
@@ -18,8 +18,3 @@ class Game:
             "id" : self.id
         }
         return tmp
-
-    def Destroy(self):
-        self.__del__()
-    def __del__(self):
-        print(self.name + " has been destroyed")
