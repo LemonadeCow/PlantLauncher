@@ -1,5 +1,5 @@
 # PlantLauncher
-<img src="Assets/icon.png" alt="plant logo" width="50px" height="50px"/>
+<img src="Assets/icon.png" alt="plant logo" width="75px" height="75px"/>
 
 ## Usage
 The PlantLauncher is an application made to be used as a way to organize applications(mostly games) in a simple, fast, and effective manner. 
