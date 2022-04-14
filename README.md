@@ -20,4 +20,4 @@ As of now the application is really dumb and relies on being located in the home
 for now compiling requieres python3 and installing wx (will upload instructions on downloading an executable at some point)
     `pip3 install wxpython`
     
-Now you're all good to go and can launch the application with the launch.sh script 
+Now you're all good to go and can launch the application by running Start.py
