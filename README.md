@@ -25,3 +25,7 @@ for now compiling requieres python3 and installing wx (will upload instructions 
     `pip3 install wxpython`
     
 Now you're all good to go and can launch the application by running Start.py
+
+## Warning!!!!
+
+This is very early software and isn't great.
