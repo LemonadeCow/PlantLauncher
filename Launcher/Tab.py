@@ -24,6 +24,7 @@ import time
         -Use .png instead of .svg
         -Use a different fork of wine, currently using wine (the wine installed in the system)
         -Fix issues
+        h
 '''
 
 class GameTab(scrolled.ScrolledPanel):
