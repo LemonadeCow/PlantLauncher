@@ -1,16 +1,18 @@
 import os, platform, subprocess, sys
-from os.path import exists, isdir
+from os.path import exists, isdir, realpath, dirname
+import subprocess
 import json
 from pathlib2 import Path
 import wx, wx.lib.scrolledpanel as scrolled
 import Data
-
+import urllib.request
+import json
 #IDEA: CHANGE FROM PATH.HOME TO CURRENT WORKING DIRECTORY (as in the file), THEN DO ../ TO ACCESS THE REST OF THE FILES AND FOLDERS WITHIN THE PLANTLAUNCHER DIRECTORY
 
 '''
     ISSUES:
         -No scrolling
-        -Windows .exe are not fully supported (haven't figured out proton)
+        -Windows .exe are not fully supported
         -.svg are no longer working
         -edit button doesn't work well
 
@@ -19,7 +21,7 @@ import Data
         -Folders
         -Redesing edit button
         -Use .png instead of .svg
-        -Use a different fork of wine, currently using wine64 (the wine installed in the system)
+        -Use a different fork of wine, currently using wine (the wine installed in the system)
         -Fix issues
 '''
 
@@ -32,6 +34,14 @@ class GameTab(scrolled.ScrolledPanel):
 
         #scrolled.ScrolledPanel.__init__(self, parent, -1) #scrolling currently not working
 
+        self.PLANT_LAUNCHER_PATH = os.path.realpath(__file__)
+        self.PLANT_LAUNCHER_PATH = os.path.dirname(self.PLANT_LAUNCHER_PATH)
+        self.PLANT_LAUNCHER_PATH = os.path.dirname(self.PLANT_LAUNCHER_PATH) # basically did ~/PlantLauncher/Launcher/Tab.py -> ../../ -> ~/PlantLauncher
+        print(self.PLANT_LAUNCHER_PATH)
+
+        os.chdir(self.PLANT_LAUNCHER_PATH)
+        print("changed directory to " + self.PLANT_LAUNCHER_PATH)
+
         icon = wx.Image(*icon_size)
 
         self.max_size = 75
@@ -39,8 +49,8 @@ class GameTab(scrolled.ScrolledPanel):
         self.add_btn = wx.Button(self, label = "Add .desktop")
         self.add_btn.Bind(wx.EVT_BUTTON, self.on_add)
 
-        self.add_wine64_btn = wx.Button(self, label = "Add .exe")
-        self.add_wine64_btn.Bind(wx.EVT_BUTTON, self.on_add_wine64)
+        self.add_wine_btn = wx.Button(self, label = "Add .exe")
+        self.add_wine_btn.Bind(wx.EVT_BUTTON, self.on_add_wine)
 
         self.edit = False
         self.e_b = []
@@ -48,9 +58,10 @@ class GameTab(scrolled.ScrolledPanel):
         self.edit_btn.Bind(wx.EVT_BUTTON, self.on_edit)
         self.edit_btn.SetPosition((self.add_btn.GetPosition()[0] + self.edit_btn.GetSize()[0] + 20, 5)) #fix this tf
 
-        self.add_wine64_btn.SetPosition((self.edit_btn.GetPosition()[0] + self.add_wine64_btn.GetSize()[0] + 5, 5))
+        self.add_wine_btn.SetPosition((self.edit_btn.GetPosition()[0] + self.add_wine_btn.GetSize()[0] + 5, 5))
         self.short_path = ""
-        os.chdir(str(Path.home()) + "/PlantLauncher") # HOME
+
+        os.chdir(self.PLANT_LAUNCHER_PATH)
 
         # START ACCESSING GAMES STORED IN GAMES.JSON
 
@@ -108,7 +119,7 @@ class GameTab(scrolled.ScrolledPanel):
     
     def on_add(self, event):
         """
-        links the shortcut to the game
+        Button handler for when adding a .desktop file
         """
         print("Entering on_add")
         wildcard = "DESKTOP files (*.desktop)|*.desktop"
@@ -127,19 +138,29 @@ class GameTab(scrolled.ScrolledPanel):
             self.add_game(pathname) 
         print("Exiting on_add")
 
-    def on_add_wine64(self, event): #kinda works, might want to use another version of wine or figure out how to use proton on the terminal
-        print("Entering on_add_wine64()")
+    def on_add_wine(self, event): #kinda works, might want to use another version of wine or figure out how to use proton on the terminal
+        """
+        Button handler for when adding a Microsoft .exe file
+        """
+        print("Entering on_add_wine()")
         wildcard = "EXECUTABLE files (*.exe)|*.exe"
         dlg = wx.FileDialog(self, "ENTER THE APPLICATION\'S .EXE", wildcard = wildcard)
         print("Started dialog")
         if dlg.ShowModal() == wx.ID_OK: 
             path = str("\"" + dlg.GetPath() + "\"")
-            self.add_wine64( path, (str(Path.home()) + "/PlantLauncher/Assets/wine_icon.png"))
+            os.chdir(self.PLANT_LAUNCHER_PATH)
+            if "heroic" not in path.lower():
+                self.add_wine(path[path.rindex("/") + 1: len(path) - 5], path, "Assets/wine_icon.png")
+            else: # executables imported from heroic will have a different naming scheme
+                self.add_wine(os.path.dirname(path)[os.path.dirname(path).rindex("/") + 1: len(os.path.dirname(path))], path, "Assets/wine_icon.png")
         dlg.Destroy()
         print("Destroyed dialog")
-        print("Exiting on_add_wine64()")
+        print("Exiting on_add_wine()")
 
     def on_edit(self, event):
+        """
+        IDK RN
+        """
         print("Entering on_edit()")
         # add the x on all buttons      
         if len(self.g_b) != len(Data.GAMES):
@@ -177,11 +198,107 @@ class GameTab(scrolled.ScrolledPanel):
         self.g_b[btn_id].Destroy()
         self.g_b.pop(btn_id)
 
-    def add_wine64(self, path_to_exec, path_to_icon):
+        
+    def score(self, str1, str2): # recommendations: figure out how to make it so that the actual length doesn't matter
+        """
+        Gives a score based on two strings' similarity
+        """
+        count = 0
+        str1_l = str1.lower()
+        str2_l = str2.lower()
+
+        #if len(str1) 
+        p = False
+        if str2_l == "hell is other demons":
+            p = True
+        for i in range(len(str1_l) - 1):
+            for j in range(len(str2_l) - 1):
+                if str1_l[i: i+1] == str2_l[j:j+1]:
+                    count += 1
+                elif (str1_l[i:i+1] == " " or str1_l[i:i+1] == "-" or str1_l[i:i+1] == "_"):
+                    i += 1
+                    count += 1 #take this out
+                elif (str2_l[j:j+1] == " " or str2_l[j:j+1] == "-" or str2_l[j:j+1] == "_"):
+                    j += 1
+                    count += 1 #take this out
+                else:
+                    count -= 1
+                i += 1
+            break
+                
+        if p:
+            print(count)
+            
+        return (count, str1, str2)
+
+    def add_wine(self, name, path_to_exec, path_to_icon):
+        """
+        PLEASE CLEAN THIS UP :)
+
+        Sets up files whose execution is tied to a .exe, using wine ofc
+
+        recommendation to myself:
+            allow the user to install a version of wine while they upload the file, maybe proton or proton-ge
+            
+        NOTE: This is the most spaghetti code I have written yet, BEWARE
+        """
+        print("entering add_wine")
         self.game = Data.Game()
-        self.game.name = "h"
+        self.game.name = name
         self.game.icon = path_to_icon
-        self.game.exec = "wine64 " + path_to_exec
+        self.setup_pfx = False
+
+        if not self.setup_pfx and "heroic" in path_to_exec.lower():
+            game_path = os.path.dirname(path_to_exec).replace("\"", "") # not sure why that was there
+            heroic_path = os.path.dirname(game_path).replace("\"", "")
+            print(heroic_path)
+            print(os.path.isdir(heroic_path))
+
+            # list the directories and find the one with the highest score
+            os.chdir(os.path.join(heroic_path, heroic_path + "/Prefixes"))
+            max = (0, "", "")
+            
+            for i in os.listdir():
+                n = self.score(game_path, i) # shortest first
+                if max[0] < n[0]:
+                    max = n
+            print("name for directory " + max[-1])
+            os.chdir(self.PLANT_LAUNCHER_PATH)
+
+            r = urllib.request.urlopen('https://raw.githubusercontent.com/srdrabx/items-tracker/master/database/list.json')
+            tmp = r.read()
+            r.close()
+            obj = json.loads(str(tmp, 'utf-8'))
+            max = (0, "", "")
+            index = 0
+            for i in range(len(obj)):
+                name = obj[i][2]
+                n = self.score(name, self.game.name) # it is best to have it ordered as shortest length first since idk how to accomodate for that other than
+                                                     # having it set to that in the actual function as in check the one with the least length
+                if max[0] < n[0]:
+                    print(max)
+                    max = n
+                    index = i
+            print("IS THIS THE NAME OF THE CURRENT GAME? " + max[-2])
+
+            g_id = obj[index][0] # the game's id
+            print("ID? " + g_id)
+
+            r = urllib.request.urlopen('https://raw.githubusercontent.com/srdrabx/items-tracker/master/database/items/'+ g_id +'.json')
+            tmp = r.read()
+            r.close()
+            obj = json.loads(str(tmp, 'utf-8'))
+            self.game.epic_id = obj["releaseInfo"][0]["appId"] # this is the game's app ID, needed to run legendary launch
+            print("APPID? " + self.game.epic_id)
+            self.game.exec = "mangohud --dlsym /opt/Heroic/resources/app.asar.unpacked/build/bin/linux/legendary launch " + self.game.epic_id + " --wine \"/home/cow/.config/heroic/tools/wine/Wine-GE-Proton7-8/bin/wine\" --wine-prefix \"" + os.path.join(heroic_path, heroic_path + "/Prefixes/" + max[2]) + "\""
+            # I'm gonna assume these games are coming from epic games
+            # NOTE: 
+                # I should definitely make the wine version customizable, that means I'd have to scan the env variables and look for the paths of the different wine versions and let the user choose
+                    # I think that's how that works, I actually don't know tbf
+                # and the other settings, mangohud, gamemoderun, dlsym, stuff like that
+                # mangohud must be installed beforehand, might make that automated, same with gamemdoderun
+
+                #side note, Mangohud isn't working in "hell is other demons" but seems to work everywhere else, might look into the wineprefix
 
         try:
             bmp = wx.Bitmap(self.game.icon, wx.BITMAP_TYPE_PNG)
@@ -204,6 +321,9 @@ class GameTab(scrolled.ScrolledPanel):
 
             Data.GAMES[self.game.id] = Data.GAMES[self.game.id].to_json()
             print("Converted list to json")
+
+            #ADDING THE BUTTON TO THE LIST 
+
             self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
             self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
             if self.edit:
@@ -211,6 +331,9 @@ class GameTab(scrolled.ScrolledPanel):
                     self.e_b[i].Destroy()
                 self.edit = False
             self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, self.on_game_down)
+
+            print("added button to list and succesfully binded the button as well")
+            #SIZER THINGS 
 
             self.main_sizer.Remove(self.g_sizer)
             print(Data.GAMES)
@@ -220,56 +343,69 @@ class GameTab(scrolled.ScrolledPanel):
             self.main_sizer.Add(self.g_sizer, 0, wx.LEFT, 5)
             self.Layout()
             self.Refresh()
+            wx.MessageBox("Game Succesfully Added!", "Wine", wx.OK)
         except:
             #Data.GAMES.pop(self.game.id)
             wx.MessageBox("Either the game has been uninstalled or the icon cannot be found", "Error", wx.OK | wx.ICON_ERROR)    
 
     def add_game(self, path):
         """
-        adds properties to the game"s index in the list and sets up the game in the gui
+        Sets up games whose information is tied to a .desktop
         """
         self.game = Data.Game()
         self.game.shortcut = path
         desktop_file = open(self.game.shortcut, "r")
 
+        # setup icon
         self.game.icon = subprocess.Popen(["bash", "PlantLauncher/.scripts/get_icon.sh" , self.game.shortcut], cwd=Path.home(), stdout=subprocess.PIPE)
         self.game.icon = str(self.game.icon.stdout.read())
         self.game.icon = self.game.icon.replace("b", "",1)
         self.game.icon = self.game.icon.replace("\\n", "",1)
         self.game.icon = self.game.icon.replace("\"", "")
         self.game.icon = self.game.icon.replace("\'", "")
+        print("icon succesfully setup")
         
+        #setup exec
         self.game.exec = subprocess.Popen(["bash", "PlantLauncher/.scripts/get_executable.sh" , self.game.shortcut], cwd=Path.home(), stdout=subprocess.PIPE)
         self.game.exec = str(self.game.exec.stdout.readline())
         self.game.exec = self.game.exec.replace("b", "",1)
         self.game.exec = self.game.exec.replace("\\n", "",1)
         self.game.exec = self.game.exec.replace("\"", "")
         self.game.exec = self.game.exec.replace("\'", "")
-        
+        print("exec succesfully setup")
+
+        #setup name
         self.game.name = subprocess.Popen(["bash", "PlantLauncher/.scripts/get_name.sh" , self.game.shortcut], cwd=Path.home(), stdout=subprocess.PIPE)
         self.game.name = str(self.game.name.stdout.readline())
         self.game.name = self.game.name.replace("b", "",1)
         self.game.name = self.game.name.replace("\\n", "",1)
         self.game.name = self.game.name.replace("\"", "")
         self.game.name = self.game.name.replace("\'", "")
+        print("name succesfully setup")
 
         desktop_file.close()
+        print("desktop_file has been closed")
+        
         if "steam_icon_" in self.game.icon or "lutris" in self.game.icon:
-            os.chdir(str(Path.home()) + "/.local/share/icons/hicolor")
-            tmp_dir = os.listdir()
-            tmp_dir = self.sort(tmp_dir)
+            print("current game is a steam or lutris title")
+
+            icon_path = str(Path.home()) + "/.local/share/icons/hicolor/"
+            os.chdir(icon_path)
+            tmp_dirs = os.listdir()
+            tmp_dirs = self.sort(tmp_dirs)
 
             icon_id = self.game.icon
 
-            for d in tmp_dir:
-                if "." not in d:
-                    if icon_id + ".png" in os.listdir(str(d) + "/apps"):
-                        self.game.icon = str(Path.home()) + "/.local/share/icons/hicolor/" + str(d) + "/apps/" + icon_id + ".png"
+            for d in tmp_dirs:
+                if os.path.isdir(d):
+                    if icon_id + ".png" in os.listdir(d + "/apps"):
+                        self.game.icon = icon_path + d + "/apps/" + icon_id + ".png"
                         if "128" in d:
                             break     
+            print("succesfully found the game icon")
 
         print(self.game.icon)   
-        os.chdir(str(Path.home()))         
+        os.chdir(self.PLANT_LAUNCHER_PATH)         
 
         try:
             print("Trying...")
@@ -290,31 +426,44 @@ class GameTab(scrolled.ScrolledPanel):
             Data.GAMES.append(self.game)
             self.game.id = Data.GAMES.index(self.game)
             print("Appended game to the Data.GAMES list")
+            print(Data.GAMES)
 
             Data.GAMES[self.game.id] = Data.GAMES[self.game.id].to_json()
             print("Converted list to json")
+
             self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
             self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
+            print("Appended game to the graphical button list")
+
+            '''
             if self.edit:
                 for i in range(len(self.e_b)):
                     self.e_b[i].Destroy()
+                    print("destroyed " + self.e_b[i])
                 self.edit = False
+            ''' # gonna leave commented out for now
+
             self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, self.on_game_down)
 
             self.main_sizer.Remove(self.g_sizer)
-            print(Data.GAMES)
-            
+            #print("current list " + Data.GAMES)
+
             self.g_sizer = wx.GridSizer(6,5,5)
             self.g_sizer.AddMany(self.g_b)
             self.main_sizer.Add(self.g_sizer, 0, wx.LEFT, 5)
             self.Layout()
             self.Refresh()
+            wx.MessageBox("Game Succesfully Added!", "Wine", wx.OK)
         except:
             #Data.GAMES.pop(self.game.id)
             wx.MessageBox("Either the game has been uninstalled or the icon cannot be found", "Error", wx.OK | wx.ICON_ERROR)
+    print("Exiting add_game function")
 
     def sort(self, list):
-
+        """
+        Sorts a list based on a point system that I haven't implemented
+        """
+        print("Entered the sort function")
         tmp = []
 
         for d in list:
@@ -335,10 +484,18 @@ class GameTab(scrolled.ScrolledPanel):
                 if str(tmp[j]) in list[i]:
                     tmp_1.append(list[i]) #add the numbers, like a scoring system to make this work better
 
+        print("Exited the sort function")
         return tmp_1
 
+    """
+    FROM THIS POINT ON EVERYTHING IS UNFINISHED
+    """
+
     def load_games_from_folder(self):
-        if Data.DEFAULT_GAME_DIR is not None: #meaning the directory exists
+        """
+        attempts to load files from a folder
+        """
+        if Data.DEFAULT_GAME_DIR is not None: # meaning if the directory has been assigned
             os.chdir(str(Path.home()) + "/PlantLauncher/Assets")
             for line in open("Assets/default.json", "r"): 
                 if len(line.replace("\\n", "")) > 0 and os.path.isdir(line):
@@ -352,8 +509,11 @@ class GameTab(scrolled.ScrolledPanel):
      
     def on_game_down(self, event):
         """
-        handles when the user clicks down on a game
+        handles running the game when the user clicks down on a game
+
+        NOT DONE
         """
+        print("Trying to launch game...")
         if not self.edit: # mental note: figure out how to manage launches so that multiple instances of the same game cannot be launched
             """
             creates a tmp file and dir and creates the launch instructions for the game
@@ -371,8 +531,7 @@ class GameTab(scrolled.ScrolledPanel):
             os.system("bash /tmp/PlantLauncher/launch_instructions.sh")
             os.remove("/tmp/PlantLauncher/launch_instructions.sh")
             os.rmdir("/tmp/PlantLauncher")
-            os.chdir(os.path.dirname(__file__))
-            os.chdir(Path.home())
+            os.chdir(self.PLANT_LAUNCHER_PATH)
 
     def on_game_up(self, event):
         ###check for the nearest cell to reside in (empty or not) and
@@ -381,6 +540,9 @@ class GameTab(scrolled.ScrolledPanel):
         print("just making sure it works")
     
     def on_game_drag(self, event):
+        """
+        HAVENT DONE IT YET
+        """
         if self.edit:
             x, y = event.GetPosition()
             if not event.Dragging():
