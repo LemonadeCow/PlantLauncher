@@ -8,23 +8,21 @@ import Data
 import urllib.request
 from dotenv import load_dotenv, find_dotenv
 import time
-#IDEA: CHANGE FROM PATH.HOME TO CURRENT WORKING DIRECTORY (as in the file), THEN DO ../ TO ACCESS THE REST OF THE FILES AND FOLDERS WITHIN THE PLANTLAUNCHER DIRECTORY
 
 '''
     ISSUES:
         -No scrolling
-        -Windows .exe are not fully supported
+        -Windows .exe are not fully supported, well they kinda are now, might make some changes for when the user adds a steam .exe or a lutris .exe
         -.svg are no longer working
         -edit button doesn't work well
 
     TO-DO:
-        -Grid for the games so that they can be moved around freely
-        -Folders
-        -Redesing edit button
-        -Use .png instead of .svg
-        -Use a different fork of wine, currently using wine (the wine installed in the system)
+        -Grid for the games so that they can be moved around freely, like make it magnetized
+        -Folders for apps
+        -Redesign edit button
+        -Use .png instead of .svg 
+        -Make the fork of wine optional for the user like the heroic game launcher
         -Fix issues
-        h
 '''
 
 class GameTab(scrolled.ScrolledPanel):
@@ -160,6 +158,7 @@ class GameTab(scrolled.ScrolledPanel):
     def on_edit(self, event):
         """
         IDK RN
+        I should probably darken the rest of the window and change the color of the main edit button
         """
         print("Entering on_edit()")
         # add the x on all buttons      
@@ -180,8 +179,8 @@ class GameTab(scrolled.ScrolledPanel):
             for i in range(len(self.g_b)):
                 self.e_b.append(0)
             for i in range(len(self.g_b)):
-                self.e_b[i] = wx.Button(self, label="", id=i, size=(30,30), pos=(self.g_b[i].GetPosition()[0] + 75, self.g_b[i].GetPosition()[1] - 5))
-                self.e_b[i].Bind(wx.EVT_BUTTON, lambda event: self.on_click(event, i))
+                self.e_b[i] = wx.Button(self, label="", id=Data.GAMES[i]["id"], size=(30,30), pos=(self.g_b[i].GetPosition()[0] + 75, self.g_b[i].GetPosition()[1] - 5))
+                self.e_b[i].Bind(wx.EVT_BUTTON, lambda event: self.on_click_x(event, i))
                 self.e_b[i].SetBitmap(bmp)
                 self.e_b[i].SetBitmapMargins((1,1))
             self.edit = True
@@ -193,21 +192,14 @@ class GameTab(scrolled.ScrolledPanel):
             return
     print("Exiting on_edit")
 
-    def on_click(self, event, ind):
+    def on_click_x(self, event, ind):
         btn = event.GetEventObject()
-        btn_id = btn.GetId()
+        Data.GAMES.pop(self.e_b.index(btn))
+        self.g_b[self.e_b.index(btn)].Destroy()
+        self.g_b.pop([self.e_b.index(btn)])
+        self.e_b.pop(self.e_b.index(btn))
         btn.Destroy()
-        Data.GAMES.pop(btn_id)
-        self.e_b.pop(btn_id)
-        self.g_b[btn_id].Destroy()
-        self.g_b.pop(btn_id)
-        n = 0
-        for i in Data.GAMES:
-            i["id"] = n
 
-        
-
-        
     def score(self, str1, str2): # recommendations: figure out how to make it so that the actual length doesn't matter
         """
         Gives a score based on two strings' similarity
@@ -510,14 +502,15 @@ class GameTab(scrolled.ScrolledPanel):
             print("Image is rescaled")
 
             Data.GAMES.append(self.game)
-            self.game.id = Data.GAMES.index(self.game)
+            index = Data.GAMES.index(self.game)
+            self.game.id = index + 1000
             print("Appended game to the Data.GAMES list")
             print(Data.GAMES)
 
-            Data.GAMES[self.game.id] = Data.GAMES[self.game.id].to_json()
-            print("Converted list to json")
+            Data.GAMES[index] = Data.GAMES[index].to_json()
+            print("Converted to json")
 
-            self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
+            self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10)))
             self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
             print("Appended game to the graphical button list")
 
