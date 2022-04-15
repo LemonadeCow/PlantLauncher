@@ -19,8 +19,6 @@ Now I have revitalized the project even though I'm no longer using Pop!_OS becau
 Well you can extract the code from github using 
     `cd ~/ && git clone https://github.com/LemonadeCow/PlantLauncher.git`
 
-As of now the application is really dumb and relies on being located in the home directory (will fix at some point)
-
 for now compiling requieres python3 and installing wx (will upload instructions on downloading an executable at some point)
     `pip3 install wxpython`
     
