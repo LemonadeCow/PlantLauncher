@@ -300,6 +300,77 @@ class GameTab(scrolled.ScrolledPanel):
 
                 #side note, Mangohud isn't working in "hell is other demons" but seems to work everywhere else, might look into the wineprefix
 
+        '''
+        Anything bellow this line is hell
+
+        Therefore it will remain commented out :)
+        '''
+
+        self.download_winetricks = False
+        if self.download_winetricks and not os.path.isdir(".winetricks"):
+            os.makedirs(".winetricks")
+            cmd = "cd " + self.PLANT_LAUNCHER_DIR + "/.winetricks && wget  https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && chmod +x winetricks"
+            n = os.popen(cmd)
+            if n == 0:
+                print("Winetricks has been installed")
+
+        # I HATE WINE PREFIXES
+
+        if not os.path.isdir(self.PLANT_LAUNCHER_DIR + "/.winepfx/"):
+            cmd = "WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\""
+            print(cmd)
+            print(os.system("export WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\""))
+            print(os.system(cmd + " wine wineboot"))
+            
+            os.system("echo $WINEPREFIX")
+            #os.system("wine " + path_to_exec)
+            print("wineprefix has been setup") # -> the best joke of the century
+
+        self.download_dxvk = False
+        
+        if self.download_dxvk:
+            print("preparing to download dxvk")
+            if not os.path.isdir(".dxvk"):
+                os.makedirs(".dxvk")
+                os.chdir(self.PLANT_LAUNCHER_DIR + "/.dxvk")
+                #I think it'd be smarter to fetch the dxvk version and then insert it here rather than manually setting it, or even better, leaving it to the user
+                subprocess.Popen(["wget https://github.com/doitsujin/dxvk/releases/download/v1.10.1/dxvk-1.10.1.tar.gz && tar -xvf dxvk-1.10.1.tar.gz && rm -rvf dxvk-1.10.1.tar.gz"], shell=True)
+            else:
+                print(os.getcwd())
+                os.chdir(self.PLANT_LAUNCHER_DIR + "/.dxvk/dxvk-1.10.1")
+            
+            print("installing dxvk to the wineprefix!!!!!!!")
+            print(self.game.name)
+            #subprocess.Popen("WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/\"", shell=True)
+            
+            if not os.path.isdir(self.PLANT_LAUNCHER_DIR + "tmp"):
+                print("making /tmp/PlantLauncher")
+                os.makedirs(self.PLANT_LAUNCHER_DIR + "/tmp")
+            f = open(self.PLANT_LAUNCHER_DIR + "/tmp/launch_instructions.sh", "a")
+            f.write("#!bin/bash")
+            #f.write("\nWINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\"")
+            #f.write("\n" + "export WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\"")
+            #f.write("\necho $WINEPREFIX")
+            f.write("\n" + "bash " + self.PLANT_LAUNCHER_DIR + "/.dxvk/dxvk-1.10.1/setup_dxvk.sh install")
+            f.close()
+
+            print(os.system("bash " + self.PLANT_LAUNCHER_DIR + "/tmp/launch_instructions.sh"))
+            #os.remove(self.PLANT_LAUNCHER_DIR + "/tmp/launch_instructions.sh")
+            #os.rmdir(self.PLANT_LAUNCHER_DIR + "/tmp")
+
+            #subprocess.Popen(["export WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/" + self.game.name + "\"" + "./setup_dxvk.sh install --symlink"], shell=True)
+            
+            os.chdir(self.PLANT_LAUNCHER_DIR)
+        print(path_to_exec)
+        print("DXVK_HUD=1 WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/" + self.game.name + "\" wine " + path_to_exec)
+
+        print("launching game for testing")
+        print(self.game.exec)
+
+        print(name)
+        
+        #self.game.exec = "DXVK_HUD=1 WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/\" wine " + path_to_exec
+
         try:
             bmp = wx.Bitmap(self.game.icon, wx.BITMAP_TYPE_PNG)
             img = bmp.ConvertToImage()
