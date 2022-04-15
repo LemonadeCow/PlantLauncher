@@ -6,7 +6,8 @@ from pathlib2 import Path
 import wx, wx.lib.scrolledpanel as scrolled
 import Data
 import urllib.request
-import json
+from dotenv import load_dotenv, find_dotenv
+import time
 #IDEA: CHANGE FROM PATH.HOME TO CURRENT WORKING DIRECTORY (as in the file), THEN DO ../ TO ACCESS THE REST OF THE FILES AND FOLDERS WITHIN THE PLANTLAUNCHER DIRECTORY
 
 '''
@@ -309,67 +310,90 @@ class GameTab(scrolled.ScrolledPanel):
         self.download_winetricks = False
         if self.download_winetricks and not os.path.isdir(".winetricks"):
             os.makedirs(".winetricks")
-            cmd = "cd " + self.PLANT_LAUNCHER_DIR + "/.winetricks && wget  https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && chmod +x winetricks"
+            cmd = "cd " + self.PLANT_LAUNCHER_PATH + "/.winetricks && wget  https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && chmod +x winetricks"
             n = os.popen(cmd)
             if n == 0:
                 print("Winetricks has been installed")
 
         # I HATE WINE PREFIXES
 
-        if not os.path.isdir(self.PLANT_LAUNCHER_DIR + "/.winepfx/"):
-            cmd = "WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\""
+        '''
+        if not os.path.isdir(self.PLANT_LAUNCHER_PATH + "/.winepfx/"):
+            cmd = "WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx" + "\""
             print(cmd)
-            print(os.system("export WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\""))
+            print(os.system("export WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx" + "\""))
             print(os.system(cmd + " wine wineboot"))
             
             os.system("echo $WINEPREFIX")
             #os.system("wine " + path_to_exec)
             print("wineprefix has been setup") # -> the best joke of the century
-
+        '''
         self.download_dxvk = False
+        self.dxvk_ver = ""
+        self.download_vkd3d = False
+        self.vkd3d_ver = ""
         
         if self.download_dxvk:
             print("preparing to download dxvk")
+            # fetch version from somewhere
+            self.dxvk_ver = "dxvk-1.10.1"
             if not os.path.isdir(".dxvk"):
                 os.makedirs(".dxvk")
-                os.chdir(self.PLANT_LAUNCHER_DIR + "/.dxvk")
+                os.chdir(self.PLANT_LAUNCHER_PATH + "/.dxvk")
                 #I think it'd be smarter to fetch the dxvk version and then insert it here rather than manually setting it, or even better, leaving it to the user
-                subprocess.Popen(["wget https://github.com/doitsujin/dxvk/releases/download/v1.10.1/dxvk-1.10.1.tar.gz && tar -xvf dxvk-1.10.1.tar.gz && rm -rvf dxvk-1.10.1.tar.gz"], shell=True)
-            else:
-                print(os.getcwd())
-                os.chdir(self.PLANT_LAUNCHER_DIR + "/.dxvk/dxvk-1.10.1")
-            
-            print("installing dxvk to the wineprefix!!!!!!!")
-            print(self.game.name)
-            #subprocess.Popen("WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/\"", shell=True)
-            
-            if not os.path.isdir(self.PLANT_LAUNCHER_DIR + "tmp"):
-                print("making /tmp/PlantLauncher")
-                os.makedirs(self.PLANT_LAUNCHER_DIR + "/tmp")
-            f = open(self.PLANT_LAUNCHER_DIR + "/tmp/launch_instructions.sh", "a")
-            f.write("#!bin/bash")
-            #f.write("\nWINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\"")
-            #f.write("\n" + "export WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx" + "\"")
-            #f.write("\necho $WINEPREFIX")
-            f.write("\n" + "bash " + self.PLANT_LAUNCHER_DIR + "/.dxvk/dxvk-1.10.1/setup_dxvk.sh install")
-            f.close()
-
-            print(os.system("bash " + self.PLANT_LAUNCHER_DIR + "/tmp/launch_instructions.sh"))
-            #os.remove(self.PLANT_LAUNCHER_DIR + "/tmp/launch_instructions.sh")
-            #os.rmdir(self.PLANT_LAUNCHER_DIR + "/tmp")
-
-            #subprocess.Popen(["export WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/" + self.game.name + "\"" + "./setup_dxvk.sh install --symlink"], shell=True)
-            
-            os.chdir(self.PLANT_LAUNCHER_DIR)
-        print(path_to_exec)
-        print("DXVK_HUD=1 WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/" + self.game.name + "\" wine " + path_to_exec)
-
-        print("launching game for testing")
-        print(self.game.exec)
-
-        print(name)
+                result = subprocess.Popen(["wget https://github.com/doitsujin/dxvk/releases/download/v" + self.dxvk_ver[5:len(self.dxvk_ver)] + "/" + self.dxvk_ver + ".tar.gz && tar -xvf " + self.dxvk_ver + ".tar.gz && rm -rvf" + self.dxvk_ver + ".tar.gz"], shell=True)
+                result.wait()
+        os.chdir(self.PLANT_LAUNCHER_PATH)   
+        if self.download_vkd3d:
+            print("preparing to download vkd3d")
+            self.vkd3d_ver = "vkd3d-proton-2.6"
+            if not os.path.isdir(".vkd3d"):
+                os.makedirs(".vkd3d")
+                os.chdir(self.PLANT_LAUNCHER_PATH + "/.vkd3d")
+                result = subprocess.Popen(["wget https://github.com/HansKristian-Work/vkd3d-proton/releases/download/v" + self.vkd3d_ver[13:len(self.vkd3d_ver)] + "/" + self.vkd3d_ver + ".tar.zst && tar --use-compress-program=unzstd -xvf " + self.vkd3d_ver + ".tar.zst && rm -rvf " + self.vkd3d_ver + ".tar.zst"], shell=True)
+                result.wait()
+        os.chdir(self.PLANT_LAUNCHER_PATH)
+        '''
+        '''
         
-        #self.game.exec = "DXVK_HUD=1 WINEPREFIX=\"" + self.PLANT_LAUNCHER_DIR + "/.winepfx/\" wine " + path_to_exec
+        # SETUP WINEPREFIX
+        # A lot of this is unnecessary and should be cleaned up by a competent programmer
+        # sadly I have no competent programmer
+        if not os.path.isdir(".env"):
+            os.makedirs(self.PLANT_LAUNCHER_PATH + "/.env")
+        result = subprocess.Popen(["wine WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\""], shell=True)
+        result.wait()
+        print("WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\" winecfg")
+        f = open(self.PLANT_LAUNCHER_PATH + "/.env/winepfx.env", "w")
+        f.write("WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\"")
+        f.close()
+        print("loaded .env")
+        load_dotenv(self.PLANT_LAUNCHER_PATH + "/.env")
+        wineprefix = os.getenv('WINEPREFIX')
+
+        while not os.path.exists(self.PLANT_LAUNCHER_PATH + "/.winepfx/system.reg"):
+            print("waiting for the wine prefix to finish loading")
+            time.sleep(1)
+        time.sleep(1)
+
+        if self.download_dxvk:
+            result = subprocess.run(["bash " + self.PLANT_LAUNCHER_PATH + "/.dxvk/" + self.dxvk_ver + "/setup_dxvk.sh install"], shell=True, capture_output=True)
+            print(result)
+            if 'returncode=0' not in str(result, 'utf-8'):
+                print("error")
+            else:
+                self.download_dxvk = False
+        if self.download_vkd3d:
+            result = subprocess.run(["bash " + self.PLANT_LAUNCHER_PATH + "/.vkd3d/" + self.vkd3d_ver + "/setup_vkd3d_proton.sh install"], shell=True, capture_output=True)
+            print(result)
+            if 0 != result.returncode:
+                print("error")
+            else:
+                self.download_vkd3d = False
+        os.chdir(self.PLANT_LAUNCHER_PATH)
+
+        self.game.exec = "DXVK_HUD=1 WINEPREFIX=" + wineprefix + " wine " + path_to_exec
+        print("Wine has been set up")
 
         try:
             bmp = wx.Bitmap(self.game.icon, wx.BITMAP_TYPE_PNG)
@@ -506,13 +530,14 @@ class GameTab(scrolled.ScrolledPanel):
             self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
             print("Appended game to the graphical button list")
 
-            '''
+            # CHECK THIS
+            #################################################################################
             if self.edit:
                 for i in range(len(self.e_b)):
                     self.e_b[i].Destroy()
                     print("destroyed " + self.e_b[i])
                 self.edit = False
-            ''' # gonna leave commented out for now
+
 
             self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, self.on_game_down)
 
@@ -584,7 +609,7 @@ class GameTab(scrolled.ScrolledPanel):
 
         NOT DONE
         """
-        print("Trying to launch game...")
+
         if not self.edit: # mental note: figure out how to manage launches so that multiple instances of the same game cannot be launched
             """
             creates a tmp file and dir and creates the launch instructions for the game
