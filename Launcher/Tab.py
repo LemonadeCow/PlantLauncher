@@ -83,8 +83,6 @@ class GameTab(scrolled.ScrolledPanel):
         for i in range(len(Data.GAMES)):
             self.g_b.append(0)
 
-        print(Data.GAMES)
-
         for i in range(len(Data.GAMES)):
             img = wx.Image(Data.GAMES[i]["icon"], wx.BITMAP_TYPE_ANY)
 
@@ -169,6 +167,10 @@ class GameTab(scrolled.ScrolledPanel):
         
         os.chdir(Path.home())
 
+        bmp = wx.Bitmap(self.PLANT_LAUNCHER_PATH + "/Assets/edit.png", wx.BITMAP_TYPE_PNG)
+        edit_img = bmp.ConvertToImage()
+        bmp = wx.Bitmap(edit_img.Scale(30, 30))
+
         #edit_svg = wx.svg.SVGimage.CreateFromFile("PlantLauncher/Assets/edit_x.svg")
         #bmp = edit_svg.ConvertToBitmap(scale=1 ,width=30, height=30)
 
@@ -181,13 +183,13 @@ class GameTab(scrolled.ScrolledPanel):
                 self.e_b[i].Bind(wx.EVT_BUTTON, lambda event: self.on_click(event, i))
                 self.e_b[i].SetBitmap(bmp)
                 self.e_b[i].SetBitmapMargins((1,1))
+            self.edit = True
         else:
             for i in range(len(self.e_b)):
                 self.e_b[i].Destroy()
             self.edit = False
+            print("Exiting on_edit")
             return
-
-        self.edit = True
     print("Exiting on_edit")
 
     def on_click(self, event, ind):
@@ -198,12 +200,18 @@ class GameTab(scrolled.ScrolledPanel):
         self.e_b.pop(btn_id)
         self.g_b[btn_id].Destroy()
         self.g_b.pop(btn_id)
+        n = 0
+        for i in Data.GAMES:
+            i["id"] = n
+
+        
 
         
     def score(self, str1, str2): # recommendations: figure out how to make it so that the actual length doesn't matter
         """
         Gives a score based on two strings' similarity
         """
+        # Ask CC about this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         count = 0
         str1_l = str1.lower()
         str2_l = str2.lower()
@@ -292,7 +300,7 @@ class GameTab(scrolled.ScrolledPanel):
             self.game.epic_id = obj["releaseInfo"][0]["appId"] # this is the game's app ID, needed to run legendary launch
             print("APPID? " + self.game.epic_id)
             self.game.exec = "mangohud --dlsym /opt/Heroic/resources/app.asar.unpacked/build/bin/linux/legendary launch " + self.game.epic_id + " --wine \"/home/cow/.config/heroic/tools/wine/Wine-GE-Proton7-8/bin/wine\" --wine-prefix \"" + os.path.join(heroic_path, heroic_path + "/Prefixes/" + max[2]) + "\""
-            # I'm gonna assume these games are coming from epic games
+            # I'm assuming these games are coming from epic games
             # NOTE: 
                 # I should definitely make the wine version customizable, that means I'd have to scan the env variables and look for the paths of the different wine versions and let the user choose
                     # I think that's how that works, I actually don't know tbf
@@ -300,12 +308,6 @@ class GameTab(scrolled.ScrolledPanel):
                 # mangohud must be installed beforehand, might make that automated, same with gamemdoderun
 
                 #side note, Mangohud isn't working in "hell is other demons" but seems to work everywhere else, might look into the wineprefix
-
-        '''
-        Anything bellow this line is hell
-
-        Therefore it will remain commented out :)
-        '''
 
         self.download_winetricks = False
         if self.download_winetricks and not os.path.isdir(".winetricks"):
@@ -315,19 +317,6 @@ class GameTab(scrolled.ScrolledPanel):
             if n == 0:
                 print("Winetricks has been installed")
 
-        # I HATE WINE PREFIXES
-
-        '''
-        if not os.path.isdir(self.PLANT_LAUNCHER_PATH + "/.winepfx/"):
-            cmd = "WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx" + "\""
-            print(cmd)
-            print(os.system("export WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx" + "\""))
-            print(os.system(cmd + " wine wineboot"))
-            
-            os.system("echo $WINEPREFIX")
-            #os.system("wine " + path_to_exec)
-            print("wineprefix has been setup") # -> the best joke of the century
-        '''
         self.download_dxvk = False
         self.dxvk_ver = ""
         self.download_vkd3d = False
@@ -356,25 +345,27 @@ class GameTab(scrolled.ScrolledPanel):
         '''
         '''
         
-        # SETUP WINEPREFIX
+        # SETS UP WINEPREFIX
         # A lot of this is unnecessary and should be cleaned up by a competent programmer
         # sadly I have no competent programmer
         if not os.path.isdir(".env"):
             os.makedirs(self.PLANT_LAUNCHER_PATH + "/.env")
-        result = subprocess.Popen(["wine WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\""], shell=True)
-        result.wait()
-        print("WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\" winecfg")
+        result = subprocess.run(["WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\""], shell=True)
+
+        print("WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\"")
+        
         f = open(self.PLANT_LAUNCHER_PATH + "/.env/winepfx.env", "w")
         f.write("WINEPREFIX=\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\"")
         f.close()
-        print("loaded .env")
         load_dotenv(self.PLANT_LAUNCHER_PATH + "/.env")
-        wineprefix = os.getenv('WINEPREFIX')
+        print("loaded .env") # Might not be necessary anymore
+
+        wineprefix = "\"" + self.PLANT_LAUNCHER_PATH + "/.winepfx\""
+        print(wineprefix)
 
         while not os.path.exists(self.PLANT_LAUNCHER_PATH + "/.winepfx/system.reg"):
-            print("waiting for the wine prefix to finish loading")
+            print("waiting for the wineprefix to finish loading")
             time.sleep(1)
-        time.sleep(1)
 
         if self.download_dxvk:
             result = subprocess.run(["bash " + self.PLANT_LAUNCHER_PATH + "/.dxvk/" + self.dxvk_ver + "/setup_dxvk.sh install"], shell=True, capture_output=True)
@@ -421,17 +412,16 @@ class GameTab(scrolled.ScrolledPanel):
 
             self.g_b.append(wx.Button(self, id = self.game.id, label = "", size = (new_w+10, new_h+10), name=str(self.game.id)))
             self.g_b[len(self.g_b) - 1].SetBitmap(bmp)
-            if self.edit:
-                for i in range(len(self.e_b)):
-                    self.e_b[i].Destroy()
-                self.edit = False
+            #if self.edit:
+            #    for i in range(len(self.e_b)):
+            #        self.e_b[i].Destroy()
+            #    self.edit = False
             self.g_b[len(self.g_b) - 1].Bind(wx.EVT_BUTTON, self.on_game_down)
 
             print("added button to list and succesfully binded the button as well")
             #SIZER THINGS 
 
             self.main_sizer.Remove(self.g_sizer)
-            print(Data.GAMES)
             
             self.g_sizer = wx.GridSizer(6,5,5)
             self.g_sizer.AddMany(self.g_b)
@@ -609,7 +599,6 @@ class GameTab(scrolled.ScrolledPanel):
 
         NOT DONE
         """
-
         if not self.edit: # mental note: figure out how to manage launches so that multiple instances of the same game cannot be launched
             """
             creates a tmp file and dir and creates the launch instructions for the game
@@ -628,6 +617,9 @@ class GameTab(scrolled.ScrolledPanel):
             os.remove("/tmp/PlantLauncher/launch_instructions.sh")
             os.rmdir("/tmp/PlantLauncher")
             os.chdir(self.PLANT_LAUNCHER_PATH)
+        else:
+            print("you are doing something")
+            
 
     def on_game_up(self, event):
         ###check for the nearest cell to reside in (empty or not) and

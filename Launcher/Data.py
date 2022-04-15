@@ -7,6 +7,7 @@ class Game:
         self.shortcut = ""
         self.icon = ""
         self.exec = ""
+        self.wine_prefix = ""
         self.id = -1
         self.epic_id = ""
     
